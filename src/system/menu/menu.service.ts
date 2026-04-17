@@ -507,16 +507,16 @@ export class MenuService {
     });
     await this.menuRepository.save(menu);
 
-    // 生成按钮权限标识
-    const permPrefix = `${moduleName}:${tableName.replace(/_/g, "-")}:`;
-    const actions = ["add", "edit", "delete", "detail", "export", "import"];
+    // 生成CURD按钮权限
+    const permPrefix = `${moduleName}:${tableName.replace(/_/g, '-')}:`;
+    const actions = ["查询", "新增", "修改", "删除"];
+    const perms = ["list", "create", "update", "delete"];
     for (let i = 0; i < actions.length; i++) {
-      const action = actions[i];
       const button = this.menuRepository.create({
         parentId: menu.id,
         type: "B",
-        name: action,
-        perm: permPrefix + action,
+        name: actions[i],
+        perm: permPrefix + perms[i],
         sort: i + 1,
         treePath: `${treePath},${menu.id}`,
         createTime: new Date(),
