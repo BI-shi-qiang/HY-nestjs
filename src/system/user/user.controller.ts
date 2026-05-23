@@ -269,7 +269,7 @@ export class UserController {
   @Post("import")
   @Permissions("sys:user:import")
   @UseInterceptors(FileInterceptor("file"))
-  async importUsers(@UploadedFile() file: Express.Multer.File) {
+  async importUsers(@UploadedFile() file: any) {
     if (!file?.buffer) {
       throw new BusinessException("上传文件为空");
     }
