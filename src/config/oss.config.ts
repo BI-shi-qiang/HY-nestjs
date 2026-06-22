@@ -7,7 +7,7 @@ export default registerAs("oss", () => ({
     endpoint: process.env.OSS_MINIO_ENDPOINT || "http://localhost:9000",
     accessKey: process.env.OSS_MINIO_ACCESS_KEY || "",
     secretKey: process.env.OSS_MINIO_SECRET_KEY || "",
-    bucketName: process.env.OSS_MINIO_BUCKET || "youlai",
+    bucketName: process.env.OSS_MINIO_BUCKET || "heyuan",
     customDomain: process.env.OSS_MINIO_CUSTOM_DOMAIN || "",
   },
 

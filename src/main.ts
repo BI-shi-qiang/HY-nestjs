@@ -9,6 +9,8 @@ import type { ValidationError } from "class-validator";
 import { BusinessException } from "./common/exceptions/business.exception";
 import { ErrorCode } from "./common/enums/error-code.enum";
 import { Logger } from "@nestjs/common";
+import type { NestExpressApplication } from "@nestjs/platform-express";
+import * as chalk from "chalk";
 
 async function bootstrap() {
   const logger = new Logger("Bootstrap");
@@ -18,7 +20,7 @@ async function bootstrap() {
     };
   }
 
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const configService = app.get(ConfigService);
 
   // 全局前缀
@@ -71,10 +73,17 @@ async function bootstrap() {
     })
   );
 
+  // 本地文件存储的静态访问（OSS_TYPE=local 时生效）
+  const ossType = configService.get<string>("OSS_TYPE") || "aliyun";
+  if (ossType === "local") {
+    const storagePath = configService.get<string>("OSS_LOCAL_STORAGE_PATH") || "D:/data/oss/";
+    app.useStaticAssets(storagePath, { prefix: "/uploads" });
+  }
+
   // Swagger 配置
   const config = new DocumentBuilder()
-    .setTitle("youlai-nest")
-    .setDescription(`youlai 全家桶（Node/Nest 11）权限管理后台接口文档`)
+    .setTitle("荷源管理系统")
+    .setDescription(`荷源管理系统接口文档`)
     .setVersion("1.0")
     .addBearerAuth()
     .build();
@@ -102,6 +111,20 @@ async function bootstrap() {
   const portRaw = configService.get("APP_PORT") ?? configService.get("SERVER_PORT") ?? 8000;
   const port = Number(portRaw) || 8000;
   await app.listen(port);
+
+  // 启动 banner
+  console.log(
+    chalk.cyan(
+      "\n" +
+        "  ██╗  ██╗███████╗    ██╗   ██╗██╗   ██╗ █████╗ ███╗   ██╗\n" +
+        "  ██║  ██║██╔════╝    ╚██╗ ██╔╝██║   ██║██╔══██╗████╗  ██║\n" +
+        "  ███████║█████╗       ╚████╔╝ ██║   ██║███████║██╔██╗ ██║\n" +
+        "  ██╔══██║██╔══╝        ╚██╔╝  ██║   ██║██╔══██║██║╚██╗██║\n" +
+        "  ██║  ██║███████╗       ██║   ╚██████╔╝██║  ██║██║ ╚████║\n" +
+        "  ╚═╝  ╚═╝╚══════╝       ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═══╝\n" +
+        `                    荷 源 · 管 理 系 统  v1.0.0\n`
+    )
+  );
   logger.log(`应用已启动: http://localhost:${port}`);
   logger.log(`接口文档: http://localhost:${port}/api-docs`);
 }

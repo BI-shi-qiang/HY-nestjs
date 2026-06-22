@@ -319,7 +319,7 @@ export class FileService {
       throw new Error("file buffer is empty");
     }
     await fs.promises.writeFile(fullPath, content);
-    return { name: originalName, url: `/${objectName}` };
+    return { name: originalName, url: `/uploads/${objectName}` };
   }
 
   async deleteFile(filePath?: string): Promise<boolean> {
