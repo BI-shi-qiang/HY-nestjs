@@ -1,19 +1,22 @@
 # ============================================================
-# 荷源管理系统 —— 基础设施一键拉起
+# 荷源管理系统 —— 基础设施一键拉起（方案 A）
 #
 # 用法：项目根目录执行
 #   docker compose up -d          # 启动全部
-#   docker compose up -d mysql redis   # 只启动指定服务
 #   docker compose down           # 停止（数据保留在 docker/*/data）
 #   docker compose down -v        # 停止并清空数据
 #
 # 包含：MySQL 8.0（业务库）+ Redis 7（缓存/会话）
-#       + Milvus 向量库（etcd + minio + standalone，用于 RAG）
 #
-# 端口/账号已对齐 .env.dev（无需改动）：
+# 注意：Milvus 已改用 Zilliz Cloud 托管（免费 Serverless），
+#       无需在本机跑 etcd/minio/milvus，节省约 4GB 内存。
+#       只需在 .env.prod 里配置：
+#         MILVUS_ADDRESS = https://xxx.api.xxx.zillizcloud.com
+#         MILVUS_TOKEN   = 你的 Zilliz API Key
+#
+# 端口/账号已对齐 .env（无需改动）：
 #   MySQL : localhost:3306  root/root  db=heyuan
 #   Redis : localhost:6379  无密码     db=0
-#   Milvus: localhost:19530
 # ============================================================
 
 networks:
@@ -28,8 +31,8 @@ services:
     restart: unless-stopped
     environment:
       TZ: Asia/Shanghai
-      MYSQL_ROOT_PASSWORD: root          # 对应 .env.dev MYSQL_PASSWORD
-      MYSQL_DATABASE: heyuan             # 对应 .env.dev MYSQL_DB，首次启动自动建库
+      MYSQL_ROOT_PASSWORD: root          # 对应 .env.prod MYSQL_PASSWORD
+      MYSQL_DATABASE: heyuan             # 对应 .env.prod MYSQL_DB，首次启动自动建库
       MYSQL_ROOT_HOST: "%"               # 允许宿主机 root 远程连接
     command:
       - --character-set-server=utf8mb4
@@ -53,7 +56,7 @@ services:
     image: redis:7.2
     container_name: heyuan-redis
     restart: unless-stopped
-    # 对应 .env.dev：无密码（REDIS_PASSWORD 为空）
+    # 对应 .env.prod：无密码（REDIS_PASSWORD 为空）
     command: redis-server --appendonly yes
     environment:
       TZ: Asia/Shanghai
@@ -68,77 +71,3 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-
-  # ============ etcd（Milvus 元数据存储） ============
-  etcd:
-    image: quay.io/coreos/etcd:v3.5.25
-    container_name: heyuan-etcd
-    restart: unless-stopped
-    environment:
-      ETCD_AUTO_COMPACTION_MODE: revision
-      ETCD_AUTO_COMPACTION_RETENTION: 1000
-      ETCD_QUOTA_BACKEND_BYTES: 4294967296
-      ETCD_SNAPSHOT_COUNT: 50000
-    command: etcd -advertise-client-urls=http://etcd:2379 -listen-client-urls=http://0.0.0.0:2379 --data-dir=/etcd
-    volumes:
-      - ./docker/etcd/data:/etcd
-    networks:
-      - heyuan
-    healthcheck:
-      test: ["CMD", "etcdctl", "endpoint", "health"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-
-  # ============ MinIO（Milvus 对象存储） ============
-  minio:
-    image: minio/minio:RELEASE.2024-12-18T13-15-44Z
-    container_name: heyuan-minio
-    restart: unless-stopped
-    environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
-    command: minio server /minio_data --console-address ":9001"
-    ports:
-      - "9000:9000"
-      - "9001:9001"
-    volumes:
-      - ./docker/minio/data:/minio_data
-    networks:
-      - heyuan
-    healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-
-  # ============ Milvus（向量数据库，RAG 检索） ============
-  milvus:
-    image: milvusdb/milvus:v2.6.18
-    container_name: heyuan-milvus
-    restart: unless-stopped
-    command: ["milvus", "run", "standalone"]
-    security_opt:
-      - seccomp:unconfined
-    environment:
-      ETCD_ENDPOINTS: etcd:2379
-      MINIO_ADDRESS: minio:9000
-      MQ_TYPE: woodpecker
-    volumes:
-      - ./docker/milvus/data:/var/lib/milvus
-    ports:
-      - "19530:19530"
-      - "9091:9091"
-    depends_on:
-      etcd:
-        condition: service_healthy
-      minio:
-        condition: service_healthy
-    networks:
-      - heyuan
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9091/healthz"]
-      interval: 10s
-      start_period: 60s
-      timeout: 5s
-      retries: 3
