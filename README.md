@@ -69,7 +69,7 @@
 **环境要求**：Node.js 20+ · pnpm · MySQL 8.0+ · Redis 7.x+
 
 1. 克隆项目：`git clone https://gitee.com/youlaiorg/youlai-nest.git`
-2. 导入数据库：`sql/mysql/youlai_admin.sql`
+2. 导入数据库：`sql/mysql/heyuan.sql`
 3. 修改配置（可选，默认已配置线上只读数据源）：`.env.dev`
 4. 安装依赖：`pnpm install`
 5. 启动服务：`pnpm run start:dev`，访问 http://localhost:8000/api-docs

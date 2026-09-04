@@ -564,4 +564,25 @@ CREATE TABLE `sys_user_social`  (
 -- Records of sys_user_social
 -- ----------------------------
 
+-- ----------------------------
+-- Table structure for sys_rag_document (RAG 知识文档元数据)
+-- ----------------------------
+DROP TABLE IF EXISTS `sys_rag_document`;
+CREATE TABLE `sys_rag_document`  (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '文档ID（同时作为 Milvus 的 document_id）',
+  `title` varchar(120) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '文档标题',
+  `department_id` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '所属部门ID',
+  `visibility` varchar(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT 'department' COMMENT '可见性(company-公司/department-部门)',
+  `version` int(11) NOT NULL DEFAULT 0 COMMENT '当前版本号',
+  `chunk_count` int(11) NOT NULL DEFAULT 0 COMMENT '当前版本 chunk 数',
+  `checksum` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '内容校验和',
+  `source_path` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '原始 markdown 存储路径',
+  `create_by` bigint(20) NULL DEFAULT NULL COMMENT '创建人ID',
+  `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
+  `update_by` bigint(20) NULL DEFAULT NULL COMMENT '修改人ID',
+  `update_time` datetime NULL DEFAULT NULL COMMENT '更新时间',
+  `is_deleted` tinyint(4) NOT NULL DEFAULT 0 COMMENT '逻辑删除标识(0-未删除 1-已删除)',
+  PRIMARY KEY (`id`) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = 'RAG知识文档元数据表' ROW_FORMAT = Dynamic;
+
 SET FOREIGN_KEY_CHECKS = 1;

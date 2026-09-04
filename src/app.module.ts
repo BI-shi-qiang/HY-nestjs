@@ -23,6 +23,7 @@ import { SseModule } from "./message/sse.module";
 import { FileModule } from "./file/file.module";
 import { LogModule } from "./system/log/log.module";
 import { NoticeModule } from "./system/notice/notice.module";
+import { RagModule } from "./rag/rag.module";
 
 import { LoggerMiddleware } from "./common/middleware/logger.middleware";
 import { RequestContextMiddleware } from "./common/middleware/request-context.middleware";
@@ -104,6 +105,7 @@ const envPath = `.env.${process.env.NODE_ENV || "dev"}`;
     FileModule,
     LogModule,
     NoticeModule,
+    RagModule,
   ],
   controllers: [],
   providers: [
