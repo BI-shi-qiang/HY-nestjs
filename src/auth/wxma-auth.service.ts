@@ -79,22 +79,16 @@ export class WxMaAuthService {
       });
     }
 
-    const social = await this.socialRepository.findOne({
-      where: { platform: SocialPlatform.WECHAT_MINI, openid: openId },
-    });
-
-    if (social) {
-      const token = await this.generateTokenByUserId(social.userId);
-      return {
-        needBindMobile: false,
-        ...token,
-      };
-    }
-
-    this.logger.log(`微信小程序静默登录：用户未绑定手机号，openId=${openId}`);
-    return {
-      needBindMobile: true,
+    // 静默登录：openid 已绑定则直接发 token；未绑定则自动创建访客用户再发 token
+    const userId = await this.findOrCreateUserByOpenId(
       openId,
+      session.unionid,
+      session.session_key
+    );
+    const token = await this.generateTokenByUserId(userId);
+    return {
+      needBindMobile: false,
+      ...token,
     };
   }
 
@@ -210,6 +204,41 @@ export class WxMaAuthService {
     return data.access_token;
   }
 
+  /**
+   * 生成小程序码（不限数量），用于桌台码
+   * @param scene 场景参数（如 "t=1"），扫码进入小程序时通过 onLoad 的 options.scene 传入
+   * @param page 跳转页面路径
+   * @param envVersion 版本：develop / trial / release
+   */
+  async generateUnlimitedQrCode(
+    scene: string,
+    page = "pages/diancan/diancan",
+    envVersion = "develop"
+  ): Promise<Buffer> {
+    const accessToken = await this.getAccessToken();
+    const url = `https://api.weixin.qq.com/wxa/getwxacodeunlimit?access_token=${accessToken}`;
+
+    const response = await axios.post(
+      url,
+      { scene, page, check_path: false, env_version: envVersion, width: 430 },
+      { responseType: "arraybuffer" }
+    );
+
+    const data: Buffer = Buffer.isBuffer(response.data)
+      ? response.data
+      : Buffer.from(response.data);
+
+    // 微信返回错误时是 JSON（非图片），做一次判断
+    if (data.length > 0 && data.toString("utf8", 0, 1) === "{") {
+      const err = JSON.parse(data.toString("utf8"));
+      const msg = err.errmsg || "未知错误";
+      this.logger.error(`生成小程序码失败：${msg}`);
+      throw new BusinessException({ ...ErrorCode.USER_ERROR, msg: `生成小程序码失败：${msg}` });
+    }
+
+    return data;
+  }
+
   private async findOrCreateUser(mobile: string): Promise<SysUser> {
     const user = await this.userRepository.findOne({
       where: { mobile, isDeleted: 0 },
@@ -249,6 +278,60 @@ export class WxMaAuthService {
     } finally {
       await queryRunner.release();
     }
+  }
+
+  /**
+   * 按 openid 查找或创建访客用户（微信静默登录用）
+   * 已绑定则返回其 userId；未绑定则事务内创建访客用户 + 分配 GUEST 角色，随后绑定 openid
+   */
+  private async findOrCreateUserByOpenId(
+    openId: string,
+    unionid?: string,
+    sessionKey?: string
+  ): Promise<string> {
+    const social = await this.socialRepository.findOne({
+      where: { platform: SocialPlatform.WECHAT_MINI, openid: openId },
+    });
+
+    if (social) {
+      return social.userId;
+    }
+
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    let userId: string;
+    try {
+      const newUser = queryRunner.manager.create(SysUser, {
+        username: `wx_${uuidv4().replace(/-/g, "").slice(0, 16)}`,
+        nickname: "微信用户",
+        status: 1,
+        isDeleted: 0,
+      });
+      await queryRunner.manager.save(newUser);
+
+      // 分配 GUEST 角色（角色ID=3）
+      await queryRunner.query("INSERT INTO sys_user_role (user_id, role_id) VALUES (?, ?)", [
+        newUser.id,
+        3,
+      ]);
+
+      await queryRunner.commitTransaction();
+      userId = newUser.id;
+      this.logger.log(`微信小程序静默登录：创建新访客用户，openId=${openId}, userId=${userId}`);
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      const errMsg = error instanceof Error ? error.message : String(error);
+      throw new BusinessException({ ...ErrorCode.USER_ERROR, msg: `创建用户失败：${errMsg}` });
+    } finally {
+      await queryRunner.release();
+    }
+
+    // 绑定 openid（非关键，失败仅告警）
+    await this.bindWechatOpenId(userId, openId, unionid, sessionKey);
+
+    return userId;
   }
 
   private async bindWechatOpenId(

@@ -4,9 +4,11 @@ import { ApiTags, ApiOperation, ApiBody } from "@nestjs/swagger";
 import { WxMaAuthService } from "./wxma-auth.service";
 import { WxMaLoginResultDto } from "./dto/wxma-login-result.dto";
 import { LoginResultDto } from "./dto/login-result.dto";
+import { Public } from "../common/decorators/auth.decorator";
 
 @ApiTags("12.微信小程序认证")
-@Controller("api/v1/wxma/auth")
+@Public()
+@Controller("wxma/auth")
 export class WxMaAuthController {
   constructor(private readonly wxMaAuthService: WxMaAuthService) {}
 

@@ -1,3 +1,4 @@
+
 /*
  Navicat Premium Dump SQL
 
@@ -552,6 +553,9 @@ CREATE TABLE `sys_user_social`  (
   `avatar` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '第三方头像URL',
   `session_key` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '微信session_key',
   `verified` tinyint(1) NULL DEFAULT 1 COMMENT '是否已验证(1-已验证 0-未验证)',
+  `create_by` bigint(20) NULL DEFAULT NULL COMMENT '创建人ID',
+  `update_by` bigint(20) NULL DEFAULT NULL COMMENT '修改人ID',
+  `is_deleted` tinyint(4) NOT NULL DEFAULT 0 COMMENT '逻辑删除标识(0-未删除 1-已删除)',
   `create_time` datetime NULL DEFAULT NULL COMMENT '绑定时间',
   `update_time` datetime NULL DEFAULT NULL COMMENT '更新时间',
   PRIMARY KEY (`id`) USING BTREE,

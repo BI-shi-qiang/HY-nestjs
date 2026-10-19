@@ -92,6 +92,13 @@ export class SseService {
     this.logger.debug(`System message sent: ${message}`);
   }
 
+  /**
+   * 广播任意事件（供业务模块推送实时消息，如「新订单」给店员端）
+   */
+  broadcastEvent(eventName: string, data: unknown): void {
+    this.broadcast(eventName, data);
+  }
+
   private broadcast(eventName: string, data: any): void {
     const emitters = this.sessionRegistry.getAllEmitters();
     emitters.forEach((emitter: any) => {
