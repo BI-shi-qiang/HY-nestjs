@@ -78,6 +78,7 @@ CREATE TABLE `dish_order` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键',
   `table_number` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '桌号',
   `table_id` bigint(20) NULL DEFAULT NULL COMMENT '桌台ID',
+  `user_id` bigint(20) NULL DEFAULT NULL COMMENT '下单用户ID',
   `number_of_diners` int(11) NOT NULL DEFAULT 0 COMMENT '就餐人数',
   `order_no` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '订单号',
   `order_time` datetime NULL DEFAULT NULL COMMENT '下单时间',
